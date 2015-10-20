@@ -1,0 +1,16 @@
+{{define "index"}}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Poll List</title>
+    </head>
+
+    <body>
+        {{range .}}
+        <p><b>{{.Show.Votes}}</b> {{.Show.Title}} <a href="/vote/{{.Key}}">vote</a></p>
+        {{end}}
+        <p><a href="/add">Add Show</a></p>
+    </body>
+</html>
+{{end}}

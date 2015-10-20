@@ -1,0 +1,17 @@
+{{define "add"}}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Add New Show</title>
+    </head>
+
+    <body>
+        <form action="/process" method="get">
+            <label>Title:</label>
+            <input name="title" required autofocus placeholder="Type name here..." maxlength="200">
+            <input type="submit" value="Submit">
+        </form>
+    </body>
+</html>
+{{end}}

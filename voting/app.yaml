@@ -1,0 +1,17 @@
+application: show-voting
+version: alpha-001
+runtime: go
+api_version: go1
+
+handlers:
+- url: /vote/.*
+  script: _go_app
+  login: required
+- url: /process
+  script: _go_app
+  login: required
+- url: /process/.*
+  script: _go_app
+  login: required
+- url: /.*
+  script: _go_app
