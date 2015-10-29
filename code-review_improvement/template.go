@@ -12,7 +12,7 @@ import (
 func serveTemplate(res http.ResponseWriter, req *http.Request, templateName string) {
 	memItem := getSession(req)
 	if len(memItem.Value) > 0 {
-		var sd SessionData
+		var sd sessionData
 		json.Unmarshal(memItem.Value, &sd)
 		sd.LoggedIn = true
 		tpl.ExecuteTemplate(res, templateName, sd)
@@ -22,7 +22,7 @@ func serveTemplate(res http.ResponseWriter, req *http.Request, templateName stri
 		if err != nil {
 			buf := new(bytes.Buffer)
 			writ := io.MultiWriter(res, buf)
-			tpl.ExecuteTemplate(writ, templateName, SessionData{})
+			tpl.ExecuteTemplate(writ, templateName, sessionData{})
 			memcache.Set(ctx, &memcache.Item{
 				Key:   templateName,
 				Value: buf.Bytes(),

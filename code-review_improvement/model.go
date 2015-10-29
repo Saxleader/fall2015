@@ -6,7 +6,7 @@ type User struct {
 	Password string `json:"-"`
 }
 
-type SessionData struct {
+type sessionData struct {
 	User
 	LoggedIn  bool
 	LoginFail bool

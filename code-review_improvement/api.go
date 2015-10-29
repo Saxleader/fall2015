@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func checkUserName(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -35,13 +36,19 @@ func checkUserName(res http.ResponseWriter, req *http.Request, _ httprouter.Para
 
 func createUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	ctx := appengine.NewContext(req)
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(req.FormValue("password")),bcrypt.DefaultCost)
+	if err != nil{
+		log.Errorf(ctx, "error creating password: %v", err)
+		http.Error(res, err.Error(), 500)
+		return
+	}
 	user := User{
 		Email:    req.FormValue("email"),
 		UserName: req.FormValue("userName"),
-		Password: req.FormValue("password"),
+		Password: string(hashedPass),
 	}
 	key := datastore.NewKey(ctx, "Users", user.UserName, 0, nil)
-	key, err := datastore.Put(ctx, key, &user)
+	key, err = datastore.Put(ctx, key, &user)
 	if err != nil {
 		log.Errorf(ctx, "error adding todo: %v", err)
 		http.Error(res, err.Error(), 500)
@@ -58,7 +65,7 @@ func loginProcess(res http.ResponseWriter, req *http.Request, _ httprouter.Param
 	key := datastore.NewKey(ctx, "Users", req.FormValue("userName"), 0, nil)
 	var user User
 	err := datastore.Get(ctx, key, &user)
-	if err != nil || req.FormValue("password") != user.Password {
+	if err != nil || bcrypt.CompareHashAndPassword([]byte(user.Password),[]byte(req.FormValue("password"))) != nil {
 		// failure logging in
 		var sd sessionData
 		sd.LoginFail = true
