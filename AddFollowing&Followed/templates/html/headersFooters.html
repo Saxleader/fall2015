@@ -17,6 +17,7 @@
         <nav>
             {{if .LoggedIn}}
             {{template "modal-tweet"}}
+            <a href="/following"><p class="loginOut">Following</p></a>
             <a href="/api/logout"><p class="loginOut">Log Out</p></a>
             {{else}}
             <a href="/form/login"><p class="loginOut">Log In</p></a>

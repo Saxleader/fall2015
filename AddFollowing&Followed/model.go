@@ -13,10 +13,17 @@ type SessionData struct {
 	LoggedIn  bool
 	LoginFail bool
 	Tweets    []Tweet
+	Following []Relation
+	FollowingMe []Relation
 }
 
 type Tweet struct {
 	Msg      string
 	Time     time.Time
 	UserName string
+}
+
+type Relation struct {
+	Follower string
+	Following string
 }

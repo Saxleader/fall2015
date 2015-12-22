@@ -10,8 +10,12 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
-- kind: Tweets
-  ancestor: yes
+- kind: Relation
   properties:
-  - name: Time
-    direction: desc
+  - name: Follower
+  - name: Following
+
+- kind: Relation
+  properties:
+  - name: Following
+  - name: Follower

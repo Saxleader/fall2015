@@ -1,0 +1,28 @@
+{{template "header"}}
+{{template "modal-tweet-css"}}
+{{template "header2" .}}
+<main>
+    <h1>PEOPLE YOU ARE FOLLOWING:</h1>
+    {{range .Following}}
+    <section>
+        <i class="fa fa-user fa-2x"></i>
+        <div>
+            <p class="post">{{.Following}}</p>
+        </div>
+    </section>
+    {{else}}
+    <p>Nobody!</p>
+    {{end}}
+    <h1>PEOPLE FOLLOWING YOU:</h1>
+    {{range .FollowingMe}}
+    <section>
+        <i class="fa fa-user fa-2x"></i>
+        <div>
+            <p class="post">{{.Follower}}</p>
+        </div>
+    </section>
+    {{else}}
+    <p>Nobody!</p>
+    {{end}}
+</main>
+{{template "footer"}}

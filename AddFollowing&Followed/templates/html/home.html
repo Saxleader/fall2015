@@ -9,6 +9,8 @@
             <p class="post">{{.Msg}}</p>
             <p class="post-meta">{{.UserName}}</p>
             <p class="post-meta">{{humanize_time .Time}}</p>
+            <a href="/follow/{{.UserName}}">Follow</a>
+            <a href="/unfollow/{{.UserName}}">Unfollow</a>
         </div>
     </section>
     {{end}}
