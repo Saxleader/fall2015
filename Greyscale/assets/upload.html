@@ -7,9 +7,8 @@
 </head>
 
 <body>
-    <form method="POST" action="/uploadfile">
-        <p>File 1:</p><input name="file1" placeholder="Enter your user name" required>
-        <p>File 2:</p><input name="file2" placeholder="Enter your password" required>
+    <form method="POST" action="/uploadfile" enctype="multipart/form-data">
+        <p>Photo to Upload:</p><input name="file1" type="file" required>
         <button>Submit</button>
     </form>
     <a href="/logout">Logout</a>

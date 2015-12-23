@@ -12,6 +12,9 @@ import (
 	"net/http"
 	"time"
 	"encoding/json"
+	"bytes"
+	"image/jpeg"
+	"strconv"
 )
 
 type User struct {
@@ -156,7 +159,47 @@ func uploadtemplate(res http.ResponseWriter, req *http.Request, ps httprouter.Pa
 }
 
 func uploadfile(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	//upload file
+	//if logged in, serve upload template
+	ctx := appengine.NewContext(req)
+	memItem := getSession(req)
+	if len(memItem.Value) > 0 {
+		//upload file
+		src, _, err := req.FormFile("file1")
+		if err != nil {
+			log.Errorf(ctx, "error during file upload: %v", err)
+			http.Error(res, err.Error(), 500)
+			return
+		}
+		defer src.Close()
+
+		im, err := greyscale(src)
+		if err != nil {
+			log.Errorf(ctx, "error during file processing: %v", err)
+			http.Error(res, err.Error(), 500)
+			return
+		}
+
+		buffer := new(bytes.Buffer)
+		err = jpeg.Encode(buffer, im, nil)
+		if err != nil {
+			log.Errorf(ctx, "error during image encoding: %v", err)
+			http.Error(res, err.Error(), 500)
+			return
+		}
+
+		res.Header().Set("Content-Type", "image/jpeg")
+		res.Header().Set("Content-Length", strconv.Itoa(len(buffer.Bytes())))
+
+		_, err = res.Write(buffer.Bytes())
+		if err != nil {
+			log.Errorf(ctx, "error during file sending: %v", err)
+			http.Error(res, err.Error(), 500)
+			return
+		}
+	}else {
+		//redirect to index
+		http.Redirect(res, req, "/", http.StatusFound)
+	}
 }
 
 func createSession(res http.ResponseWriter, req *http.Request, user User) {
@@ -184,7 +227,7 @@ func createSession(res http.ResponseWriter, req *http.Request, user User) {
 		Key:   id.String(),
 		Value: json,
 		//		Expiration: time.Duration(20*time.Minute),
-		Expiration: time.Duration(20 * time.Second),
+		Expiration: time.Duration(10 * time.Minute),
 	}
 	memcache.Set(ctx, &sd)
 }

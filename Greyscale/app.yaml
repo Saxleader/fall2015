@@ -1,5 +1,5 @@
 application: handy-heuristic-839
-version: alpha-001
+version: beta-001
 runtime: go
 api_version: go1
 
