@@ -1,152 +1,230 @@
 package main
 
 import (
-	"image"
-	"image/jpeg"
-	"os"
-	"fmt"
-//	"image/color"
+	"github.com/julienschmidt/httprouter"
+	"github.com/nu7hatch/gouuid"
+	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/memcache"
+	"html/template"
+	"net/http"
+	"time"
+	"encoding/json"
 )
 
-func main() {
-	f1, err := os.Open("first.jpg")
-	if err != nil {
-		fmt.Printf("Error opening file: %v",err)
-		return
-	}
-	defer f1.Close()
-
-	i, err := jpeg.Decode(f1)
-	if err != nil {
-		fmt.Printf("Error decoding image: %v",err)
-		return
-	}
-
-	i1, ok := i.(*image.YCbCr)
-	if !ok {
-		fmt.Println("Image 1 is not YCbCr.")
-		return
-	}
-
-	b1 := i1.Bounds()
-
-	f2, err := os.Open("second.jpg")
-	if err != nil {
-		fmt.Printf("Error opening file: %v",err)
-		return
-	}
-	defer f2.Close()
-
-	i, err = jpeg.Decode(f2)
-	if err != nil {
-		fmt.Printf("Error decoding image: %v",err)
-		return
-	}
-
-	i2, ok := i.(*image.YCbCr)
-	if !ok {
-		fmt.Println("Image 2 is not YCbCr.")
-		return
-	}
-
-	b2 := i2.Bounds()
-
-	if b2.Dx()*b2.Dy() > b1.Dx()*b1.Dy() {
-		b1,b2,i1,i2 = b2,b1,i2,i1
-	}
-
-	o, err := os.Create("output.jpg")
-	if err != nil {
-		fmt.Printf("Error creating file: %v",err)
-		return
-	}
-	defer o.Close()
-
-//	iout := image.NewYCbCr(b1,i1.SubsampleRatio)
-	iout := image.NewRGBA(b1)
-
-//	colors := make([]color.RGBA,b1.Dx()*b1.Dy())
-
-//	var ycbcrcolor color.YCbCr
-	var r,g,b,a uint32
-
-	for n := b1.Min.Y; n < b1.Max.Y; n++  {
-		for m := b1.Min.X; m < b1.Max.X; m++ {
-			r,g,b,a = i1.At(m,n).RGBA()
-			iout.Pix[((n-b1.Min.Y)*b1.Dx()+m-b1.Min.X)*4] = uint8(r)
-			iout.Pix[((n-b1.Min.Y)*b1.Dx()+m-b1.Min.X)*4+1] = uint8(g)
-			iout.Pix[((n-b1.Min.Y)*b1.Dx()+m-b1.Min.X)*4+2] = uint8(b)
-			iout.Pix[((n-b1.Min.Y)*b1.Dx()+m-b1.Min.X)*4+3] = uint8(a)
-		}
-	}
-
-	dx := b1.Dx()
-	dy := b1.Dy()
-
-	if b1.Dx() > b2.Dx() {
-		dx = b2.Dx()
-	}
-	if b1.Dy() > b2.Dy() {
-		dy = b2.Dy()
-	}
-
-	var r1, g1, b1, a1, r2, g2, b2, a2 uint32
-
-	for n := 0; n < dy ; n++  {
-		for m := 0; m < dx; m++ {
-			r1, g1, b1, a1 = i1.At(b1.Min.X+b1.Dx()/2-dx/2+m,b1.Min.Y+b1.Dy()/2-dy/2+n).RGBA()
-			r2, g2, b2, a2 = i2.At(b1.Min.X+b1.Dx()/2-dx/2+m,b1.Min.Y+b1.Dy()/2-dy/2+n).RGBA()
-			r,g,b,a = mixpixel(r1, g1, b1, a1, r2, g2, b2, a2)
-//			b1.Dy()/2-dy/2 b1.Dx()/2--------------------------------------------------------------------------------------------------------------------------------------
-			iout.Pix[((n-b2.Min.Y)*b2.Dx()+m-b2.Min.X)*4] = uint8(r)
-			iout.Pix[((n-b2.Min.Y)*b2.Dx()+m-b2.Min.X)*4+1] = uint8(g)
-			iout.Pix[((n-b2.Min.Y)*b2.Dx()+m-b2.Min.X)*4+2] = uint8(b)
-			iout.Pix[((n-b2.Min.Y)*b2.Dx()+m-b2.Min.X)*4+3] = uint8(a)
-		}
-	}
-
-//	for n := 0; n < b1.Dy(); n++  {
-//		for m := 0; m < b1.Dx(); m++ {
-//			iout.Y[n*b1.Dx()+m],iout.Cb[(n*b1.Dx()+m)/4],iout.Cr[(n*b1.Dx()+m)/4] = color.RGBToYCbCr(colors[n*b1.Dx()+m].R,colors[n*b1.Dx()+m].G,colors[n*b1.Dx()+m].B)
-//		}
-//	}
-
-//	for n := 0; n < b1.Dy(); n++  {
-//		for m := 0; m < b1.Dx(); m++ {
-//			iout.Y[n*b1.Dx()+m] = i1.Y[n*b1.Dx()+m]
-//			iout.Cb[(n*b1.Dx()+m)/4] = i1.Cb[(n*b1.Dx()+m)/4]
-//			iout.Cr[(n*b1.Dx()+m)/4] = i1.Cr[(n*b1.Dx()+m)/4]
-//		}
-//	}
-
-
-//	iout.Y,iout.Cb,iout.Cr = i1.Y,i1.Cb,i1.Cr
-
-
-//	for n := 0; n < len(i); n++ {
-//		iout.Y[len(iout.Y)/2+n],iout.Cb[len(iout.Cb)/2+n],iout.Cr[len(iout.Cr)/2+n] = iout.Y[len(iout.Y)/2+n]+10,iout.Cb[len(iout.Cb)/2+n]+10,iout.Cr[len(iout.Cr)/2+n]+70
-//	}
-
-	err = jpeg.Encode(o,iout,nil)
-	if err != nil {
-		fmt.Printf("Error encoding image: %v",err)
-		return
-	}
-	fmt.Println(b1.Dx())
-	fmt.Println(b1.Dy())
-	fmt.Println(b2.Dx())
-	fmt.Println(b2.Dy())
-//	fmt.Println(len(iout.Y))
-//	fmt.Println(len(iout.Cb))
-//	fmt.Println(len(iout.Cr))
-//	fmt.Println(i1.SubsampleRatio)
-	fmt.Println("Success")
+type User struct {
+	Email    string
+	UserName string `datastore:"-"`
+	Password string `json:"-"`
 }
 
-//func center(r image.Rectangle) (x, y int) {
-//	return r.Dx()/2+r.Min.X,r.Dy()/2+r.Min.Y
-//}
+type sessionData struct {
+	User
+	LoggedIn  bool
+	LoginFail bool
+}
 
-func mixpixel(r1, g1, b1, a1, r2, g2, b2, a2 uint32) (r, g, b, a uint32) {
-	return r2,g2,b2,a2
+var myTmpl *template.Template
+
+func init() {
+	r := httprouter.New()
+	http.Handle("/", r)
+	r.GET("/", index)
+	r.POST("/login", login)
+	r.GET("/logout", logout)
+	r.GET("/signup",signup)
+	r.POST("/register",registeruser)
+	r.GET("/upload",uploadtemplate)
+	r.POST("/uploadfile",uploadfile)
+	myTmpl = template.Must(myTmpl.ParseGlob("assets/*.html"))
+}
+
+func index(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	//if logged in, redirect to upload template
+	memItem := getSession(req)
+	if len(memItem.Value) > 0 {
+		http.Redirect(res,req,"/upload",http.StatusFound)
+		return
+	} else {
+		//serve template for home page
+		myTmpl.ExecuteTemplate(res, "index", nil)
+	}
+}
+
+func login(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	//if logged in, redirect to upload template
+	memItem := getSession(req)
+	if len(memItem.Value) > 0 {
+		http.Redirect(res,req,"/upload",http.StatusFound)
+		return
+	}
+	//check user login info
+	ctx := appengine.NewContext(req)
+	key := datastore.NewKey(ctx, "Users", req.FormValue("username"), 0, nil)
+	var user User
+	err := datastore.Get(ctx, key, &user)
+	if err != nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.FormValue("password"))) != nil {
+		// failure logging in
+		myTmpl.ExecuteTemplate(res, "index", true)
+		return
+	} else {
+		user.UserName = req.FormValue("username")
+		// success logging in
+		createSession(res, req, user)
+		// redirect
+		http.Redirect(res, req, "/upload", http.StatusFound)
+	}
+}
+
+func signup(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	//if logged in, redirect to upload template
+	memItem := getSession(req)
+	if len(memItem.Value) > 0 {
+		http.Redirect(res,req,"/upload",http.StatusFound)
+		return
+	} else {
+		//serve template for home page
+		myTmpl.ExecuteTemplate(res, "signup", nil)
+	}
+}
+
+func registeruser(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	//if logged in, redirect to upload template
+	memItem := getSession(req)
+	if len(memItem.Value) > 0 {
+		http.Redirect(res,req,"/upload",http.StatusFound)
+		return
+	} else {
+		//register the user from submitted signup form (check if user exists)
+		if checkusername(res,req,req.FormValue("username")) {
+			myTmpl.ExecuteTemplate(res, "signup", true)
+			return
+		}
+		ctx := appengine.NewContext(req)
+		hashedPass, err := bcrypt.GenerateFromPassword([]byte(req.FormValue("password")), bcrypt.DefaultCost)
+		if err != nil {
+			log.Errorf(ctx, "error creating password: %v", err)
+			http.Error(res, err.Error(), 500)
+			return
+		}
+		user := User{
+			Email:    req.FormValue("email"),
+			UserName: req.FormValue("username"),
+			Password: string(hashedPass),
+		}
+		key := datastore.NewKey(ctx, "Users", user.UserName, 0, nil)
+		key, err = datastore.Put(ctx, key, &user)
+		if err != nil {
+			log.Errorf(ctx, "error adding todo: %v", err)
+			http.Error(res, err.Error(), 500)
+			return
+		}
+
+		createSession(res, req, user)
+		// redirect
+		http.Redirect(res, req, "/upload", 302)
+	}
+}
+
+func checkusername(res http.ResponseWriter, req *http.Request, username string) bool {
+	ctx := appengine.NewContext(req)
+	var user User
+	key := datastore.NewKey(ctx, "Users", username, 0, nil)
+	err := datastore.Get(ctx, key, &user)
+	// if there is an err, there is NO user
+	log.Infof(ctx, "ERR: %v", err)
+	if err != datastore.ErrNoSuchEntity {
+		return true
+	} else {
+		return false
+	}
+}
+
+func uploadtemplate(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	//if logged in, serve upload template
+	memItem := getSession(req)
+	if len(memItem.Value) > 0 {
+		//serve template for uploading file
+		myTmpl.ExecuteTemplate(res, "upload", nil)
+		return
+	} else {
+		//redirect to index
+		http.Redirect(res,req,"/",http.StatusFound)
+	}
+}
+
+func uploadfile(res http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	//upload file
+}
+
+func createSession(res http.ResponseWriter, req *http.Request, user User) {
+	ctx := appengine.NewContext(req)
+	// SET COOKIE
+	id, _ := uuid.NewV4()
+	cookie := &http.Cookie{
+		Name:  "session",
+		Value: id.String(),
+		Path:  "/",
+		//		UNCOMMENT WHEN DEPLOYED:
+		//		Secure: true,
+		//		HttpOnly: true,
+	}
+	http.SetCookie(res, cookie)
+
+	// SET MEMCACHE session data (sd)
+	json, err := json.Marshal(user)
+	if err != nil {
+		log.Errorf(ctx, "error marshalling during user creation: %v", err)
+		http.Error(res, err.Error(), 500)
+		return
+	}
+	sd := memcache.Item{
+		Key:   id.String(),
+		Value: json,
+		//		Expiration: time.Duration(20*time.Minute),
+		Expiration: time.Duration(20 * time.Second),
+	}
+	memcache.Set(ctx, &sd)
+}
+
+func getSession(req *http.Request) *memcache.Item {
+	cookie, err := req.Cookie("session")
+	if err != nil {
+	return &memcache.Item{}
+	}
+
+	ctx := appengine.NewContext(req)
+	item, err := memcache.Get(ctx, cookie.Value)
+	if err != nil {
+	return &memcache.Item{}
+	}
+	return item
+}
+
+func logout(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	ctx := appengine.NewContext(req)
+
+	cookie, err := req.Cookie("session")
+	// cookie is not set
+	if err != nil {
+		http.Redirect(res, req, "/", 302)
+		return
+	}
+
+	// clear memcache
+	sd := memcache.Item{
+		Key:        cookie.Value,
+		Value:      []byte(""),
+		Expiration: time.Duration(1 * time.Microsecond),
+	}
+	memcache.Set(ctx, &sd)
+
+	// clear the cookie
+	cookie.MaxAge = -1
+	http.SetCookie(res, cookie)
+
+	// redirect
+	http.Redirect(res, req, "/", 302)
 }
