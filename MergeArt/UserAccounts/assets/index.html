@@ -1,0 +1,21 @@
+{{define "index"}}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MergeArt</title>
+</head>
+
+<body>
+{{if .}}
+<p>Login Failed.</p>
+{{end}}
+<form method="POST" action="/login">
+    <p>Username:</p><input name="username" placeholder="Enter your user name" required>
+    <p>Password:</p><input name="password" type="password" placeholder="Enter your password" required>
+    <button>Submit</button>
+</form>
+<a href="/signup">Create account</a>
+</body>
+</html>
+{{end}}

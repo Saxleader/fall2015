@@ -1,0 +1,22 @@
+{{define "signup"}}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Signup</title>
+</head>
+
+<body>
+    {{if .}}
+    <p>That username has already been taken.</p>
+    {{end}}
+    <h1>Signup:</h1>
+    <form method="POST" action="/register">
+        <p>Email:</p><input name="email" placeholder="Enter your email" required>
+        <p>Username:</p><input name="username" placeholder="Enter your user name" required>
+        <p>Password:</p><input name="password" type="password" placeholder="Enter your password" required>
+        <button>Submit</button>
+    </form>
+</body>
+</html>
+{{end}}
